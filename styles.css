@@ -1,0 +1,24 @@
+.settings-btn {
+	height: 100%;
+	display: inline-block;
+	background: #e6e6e6;
+	vertical-align: center;
+	padding: 2px 4px;
+	border-radius: 3px;
+	margin-left: 2px;
+	vertical-align: center;
+}
+
+.settings-btn:hover {
+	background: #bfbfbf;
+}
+
+.settings-btn:active {
+	background: #000;
+}
+
+.settings-btn img {
+	position: relative;
+	height: 12px;
+	width: 12px;
+}
