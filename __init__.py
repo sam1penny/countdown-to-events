@@ -41,7 +41,7 @@ def display(deck_browser, content):
 
 
 def deleteEvent(eventID):
-    cursor.execute('''DELETE FROM events WHERE id=?''', str(eventID))
+    cursor.execute('''DELETE FROM events WHERE id=?''', [str(eventID)])
     db.commit()
     mw.deckBrowser.refresh()
 
