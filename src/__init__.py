@@ -3,8 +3,8 @@ from aqt import gui_hooks
 from datetime import datetime, date
 from aqt import mw
 from aqt.utils import showInfo
-from aqt.deckbrowser import DeckBrowser
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QLabel, QDateEdit, QRadioButton, QPushButton
 import sqlite3
 import pathlib
 
@@ -43,57 +43,91 @@ def display(deck_browser, content):
 def deleteEvent(eventID):
     cursor.execute('''DELETE FROM events WHERE id=?''', [str(eventID)])
     db.commit()
-    mw.deckBrowser.refresh()
 
 
-class AddEventWidget(QtWidgets.QWidget):
+class DeckEditingWidget(QWidget):
+    def __init__(self, eventID, date, name):
+        super().__init__()
+        self.eventID = eventID
+        self.date = date
+        self.name = name
+        self.initUi()
+
+    def initUi(self):
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+
+        self.eventText = QLineEdit(self.name)
+
+        self.eventDate = QDateEdit(
+            QtCore.QDate.fromString(self.date, "yyyy-MM-dd"))
+
+        self.saveButton = QPushButton("Save")
+        self.saveButton.clicked.connect(self.saveEvent)
+
+        self.deleteButton = QPushButton("Delete")
+        self.deleteButton.clicked.connect(self.deleteEventAndRefresh)
+
+        layout.addWidget(self.eventText)
+        layout.addWidget(self.eventDate)
+        layout.addWidget(self.saveButton)
+        layout.addWidget(self.deleteButton)
+
+    def saveEvent(self):
+        newName = self.eventText.text()
+        newDate = self.eventDate.date().toPyDate().strftime("%Y-%m-%d")
+        cursor.execute("UPDATE events SET name=?, date=? WHERE id=?", [
+                       newName, newDate, self.eventID])
+        db.commit()
+
+    def deleteEventAndRefresh(self):
+        deleteEvent(self.eventID)
+        self.setParent(None)
+
+
+class AddEventWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.initUi()
 
     def initUi(self):
-        layout = QtWidgets.QVBoxLayout()
+        self.layout = QVBoxLayout()
 
-        self.dateLabel = QtWidgets.QLabel()
+        self.dateLabel = QLabel()
         self.dateLabel.setText("Select The Date Of The Event")
-        self.dateEdit = QtWidgets.QDateEdit()
+        self.dateEdit = QDateEdit()
         self.dateEdit.setDateTime(QtCore.QDateTime.currentDateTime())
         self.dateEdit.setMinimumDate(QtCore.QDate.currentDate())
 
-        self.textLabel = QtWidgets.QLabel()
+        self.textLabel = QLabel()
         self.textLabel.setText("Name / Extra Info")
-        self.textbox = QtWidgets.QLineEdit()
+        self.textbox = QLineEdit()
         self.textbox.resize(280, 40)
 
-        self.addEventBtn = QtWidgets.QPushButton("Add Event")
-        self.addEventBtn.clicked.connect(self.on_click)
+        self.addEventBtn = QPushButton("Add Event")
+        self.addEventBtn.clicked.connect(self.addEventFunc)
 
-        layout.addWidget(self.dateLabel)
-        layout.addWidget(self.dateEdit)
-        layout.addWidget(self.textLabel)
-        layout.addWidget(self.textbox)
-        layout.addWidget(self.addEventBtn)
+        self.layout.addWidget(self.dateLabel)
+        self.layout.addWidget(self.dateEdit)
+        self.layout.addWidget(self.textLabel)
+        self.layout.addWidget(self.textbox)
+        self.layout.addWidget(self.addEventBtn)
 
         # adding events
         sortType = config['sort']
         data = cursor.execute(
-            '''SELECT id, name FROM events ORDER by date(date) %s''' % sortType).fetchall()
+            '''SELECT id, date, name FROM events ORDER by date(date) %s''' % sortType).fetchall()
 
-        for eventID, name in data:
-            h_layout = QtWidgets.QHBoxLayout()
+        for eventID, date, name in data:
+            deckWidget = DeckEditingWidget(eventID, date, name)
+            self.layout.addWidget(deckWidget)
 
-            self.eventText = QtWidgets.QLabel(name)
-            self.deleteButton = QtWidgets.QPushButton("Delete")
-            self.deleteButton.setObjectName(str(eventID))
-            self.deleteButton.clicked.connect(self.deleteEvent)
-            h_layout.addWidget(self.eventText)
-            h_layout.addWidget(self.deleteButton)
-            layout.addLayout(h_layout)
+        self.layout.addStretch()
 
-        h_layout = QtWidgets.QHBoxLayout()
-        lbl = QtWidgets.QLabel("Sort by: ")
-        self.ascending = QtWidgets.QRadioButton("Ascending")
-        self.descending = QtWidgets.QRadioButton("Descending")
+        h_layout = QHBoxLayout()
+        lbl = QLabel("Sort by: ")
+        self.ascending = QRadioButton("Ascending")
+        self.descending = QRadioButton("Descending")
         self.ascending.toggled.connect(self.changeSortType)
         self.descending.toggled.connect(self.changeSortType)
         sortType = config['sort']
@@ -102,21 +136,15 @@ class AddEventWidget(QtWidgets.QWidget):
         else:
             self.descending.setChecked(True)
         h_layout.addWidget(lbl)
+        h_layout.addStretch()
         h_layout.addWidget(self.ascending)
         h_layout.addWidget(self.descending)
-        layout.addLayout(h_layout)
+        self.layout.addLayout(h_layout)
 
-        self.setLayout(layout)
+        self.setLayout(self.layout)
         self.setWindowTitle("Add An Event")
 
-    def deleteEvent(self):
-        eventID = self.sender().objectName()
-        # delete the value from sql
-        cursor.execute('''DELETE FROM events WHERE id=?''', [str(eventID)])
-        db.commit()
-        self.close()
-
-    def on_click(self):
+    def addEventFunc(self):
         name = self.textbox.text()
         if len(name) < 1:
             showInfo("Name Not Entered Correctly")
@@ -126,7 +154,8 @@ class AddEventWidget(QtWidgets.QWidget):
             '''INSERT INTO events(date, name) VALUES (?, ?)''', [date, name])
         db.commit()
 
-        self.close()
+        deckWidget = DeckWidget(cursor.lastrowid, date, name)
+        self.layout.insertWidget(self.layout.count()-2, deckWidget)
 
     def changeSortType(self):
         if self.ascending.isChecked():
@@ -142,9 +171,8 @@ class AddEventWidget(QtWidgets.QWidget):
 
 def addButtons(handled, message, context):
     if message == "add-new-event":
-        widget = mw.newWidget = AddEventWidget()
-        widget.show()
-
+        mw.addEventWidget = AddEventWidget()
+        mw.addEventWidget.show()
         return (True, None)
     else:
         return handled
