@@ -49,24 +49,20 @@ class DeckEditingWidget(QWidget):
     def __init__(self, eventID, date, name):
         super().__init__()
         self.eventID = eventID
-        self.date = date
-        self.name = name
-        self.initUi()
 
-    def initUi(self):
         layout = QHBoxLayout()
         self.setLayout(layout)
 
-        self.eventText = QLineEdit(self.name)
-
+        self.eventText = QLineEdit(name)
+        self.eventText.setMinimumWidth(150)
         self.eventDate = QDateEdit(
-            QtCore.QDate.fromString(self.date, "yyyy-MM-dd"))
+            QtCore.QDate.fromString(date, "yyyy-MM-dd"))
 
         self.saveButton = QPushButton("Save")
         self.saveButton.clicked.connect(self.saveEvent)
 
         self.deleteButton = QPushButton("Delete")
-        self.deleteButton.clicked.connect(self.deleteEventAndRefresh)
+        self.deleteButton.clicked.connect(self.deleteEvent)
 
         layout.addWidget(self.eventText)
         layout.addWidget(self.eventDate)
@@ -80,7 +76,7 @@ class DeckEditingWidget(QWidget):
                        newName, newDate, self.eventID])
         db.commit()
 
-    def deleteEventAndRefresh(self):
+    def deleteEvent(self):
         deleteEvent(self.eventID)
         self.setParent(None)
 
@@ -154,7 +150,7 @@ class AddEventWidget(QWidget):
             '''INSERT INTO events(date, name) VALUES (?, ?)''', [date, name])
         db.commit()
 
-        deckWidget = DeckWidget(cursor.lastrowid, date, name)
+        deckWidget = DeckEditingWidget(cursor.lastrowid, date, name)
         self.layout.insertWidget(self.layout.count()-2, deckWidget)
 
     def changeSortType(self):
@@ -180,7 +176,7 @@ def addButtons(handled, message, context):
 
 # finds path to events.db and opens it
 __here__ = pathlib.Path(__file__).resolve().parent
-db_file = str(__here__ / 'user_files' / "events.db")
+db_file = str(__here__ / "user_files" / "events.db")
 db = sqlite3.connect(db_file)
 
 
@@ -188,18 +184,18 @@ db = sqlite3.connect(db_file)
 mw.addonManager.setWebExports(__name__, r'.+\.(png|css)')
 # get this add-on's root directory name
 addon_package = mw.addonManager.addonFromModule(__name__)
-# get config
+
 config = mw.addonManager.getConfig(__name__)
 
 
-base_url = f'/_addons/{addon_package}'
+base_url = "/_addons/{}".format(addon_package)
 
 
 cursor = db.cursor()
 cursor.execute(
     '''CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, name TEXT)''')
 
-# converts date from old format (dd/mm/yyyy) to new (yyyy/mm/dd) if old version
+# converts date from old format (dd/mm/yyyy) to new (yyyy/mm/dd) if updated from an old version
 if cursor.execute('''PRAGMA user_version''').fetchone()[0] != 2:
     cursor.execute(
         '''UPDATE events SET date=(substr(date, 7, 4) || '-' || substr(date, 4, 2) || '-' || substr(date, 1, 2))''')
