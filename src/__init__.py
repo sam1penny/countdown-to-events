@@ -20,7 +20,7 @@ def bold(s):
 
 
 def display(deck_browser, content):
-    content.stats += """<br><link rel="stylesheet" type="text/css" href="{}/styles.css"/><h3 style="display: inline-block;margin: 0 20px" >Events</h3>
+    content.stats += """<br><br><link rel="stylesheet" type="text/css" href="{}/styles.css"/><h3 style="display: inline-block;margin: 0 20px" >Events</h3>
     <div class="settings-btn" onclick='pycmd(\"add-new-event\");'><img src="{}/icons/settings.png"></div>""".format(
         base_url, base_url)
     sortType = config['sort']
