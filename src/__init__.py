@@ -34,13 +34,13 @@ def display(deck_browser, content):
         exam = row[2]
         daysLeft = days_between(due, today)
         if daysLeft < 0:
-            deleteEvent(eventID)
+            deleteEventFromDb(eventID)
         else:
             content.stats += "<br>" + \
                 bold(str(daysLeft)) + " days until " + exam
 
 
-def deleteEvent(eventID):
+def deleteEventFromDb(eventID):
     cursor.execute('''DELETE FROM events WHERE id=?''', [str(eventID)])
     db.commit()
 
@@ -78,7 +78,7 @@ class DeckEditingWidget(QWidget):
         mw.deckBrowser.refresh()
 
     def deleteEvent(self):
-        deleteEvent(self.eventID)
+        deleteEventFromDb(self.eventID)
         self.setParent(None)
         mw.deckBrowser.refresh()
 
