@@ -3,8 +3,8 @@ from aqt import gui_hooks
 from datetime import datetime, date
 from aqt import mw
 from aqt.utils import showInfo
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QLabel, QDateEdit, QRadioButton, QPushButton
+from aqt.qt import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QLabel, QDateEdit, QRadioButton, QPushButton, \
+    QDate, QDateTime
 import sqlite3
 import pathlib
 
@@ -56,7 +56,7 @@ class DeckEditingWidget(QWidget):
         self.eventText = QLineEdit(name)
         self.eventText.setMinimumWidth(150)
         self.eventDate = QDateEdit(
-            QtCore.QDate.fromString(date, "yyyy-MM-dd"))
+            QDate.fromString(date, "yyyy-MM-dd"))
 
         self.saveButton = QPushButton("Save")
         self.saveButton.clicked.connect(self.saveEvent)
@@ -75,10 +75,12 @@ class DeckEditingWidget(QWidget):
         cursor.execute("UPDATE events SET name=?, date=? WHERE id=?", [
                        newName, newDate, self.eventID])
         db.commit()
+        mw.deckBrowser.refresh()
 
     def deleteEvent(self):
         deleteEvent(self.eventID)
         self.setParent(None)
+        mw.deckBrowser.refresh()
 
 
 class AddEventWidget(QWidget):
@@ -92,8 +94,8 @@ class AddEventWidget(QWidget):
         self.dateLabel = QLabel()
         self.dateLabel.setText("Select The Date Of The Event")
         self.dateEdit = QDateEdit()
-        self.dateEdit.setDateTime(QtCore.QDateTime.currentDateTime())
-        self.dateEdit.setMinimumDate(QtCore.QDate.currentDate())
+        self.dateEdit.setDateTime(QDateTime.currentDateTime())
+        self.dateEdit.setMinimumDate(QDate.currentDate())
 
         self.textLabel = QLabel()
         self.textLabel.setText("Name / Extra Info")
@@ -152,6 +154,7 @@ class AddEventWidget(QWidget):
 
         deckWidget = DeckEditingWidget(cursor.lastrowid, date, name)
         self.layout.insertWidget(self.layout.count()-2, deckWidget)
+        mw.deckBrowser.refresh()
 
     def changeSortType(self):
         if self.ascending.isChecked():
@@ -160,6 +163,7 @@ class AddEventWidget(QWidget):
         elif self.descending.isChecked():
             config['sort'] = "DESC"
             mw.addonManager.writeConfig(__name__, config)
+        mw.deckBrowser.refresh()
 
     def closeEvent(self, event):
         mw.deckBrowser.refresh()
